@@ -1,13 +1,13 @@
 [features]
 seeds = false
-[programs.localnet]
-votesol = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
+[programs.devnet]
+votesol = "HWFFMkkxfV2xSpxytZQaEDP1QCYLKG71Vxt7bZ6zgFhK"
 
 [registry]
 url = "https://anchor.projectserum.com"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "/home/ishan/.config/solana/id.json"
 
 [scripts]
