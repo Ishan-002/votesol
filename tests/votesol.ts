@@ -18,6 +18,8 @@ describe('votesol', () => {
   // while init was already done when instruction was writting in #[account(init, ...)]
   // Hence, as we can see, createBallot() is used in the test.
   it('Program initialised', async () => {
+    // findProgramAddress() "finds" a PDA public key which does not lie on the elliptic curve using a suitable bump.
+    // So, even if, in general a pda in not created, it can find a public key for those seeds (Since, during init too, we are "finding" the pda, not creating it)
     const [ballotPDA, _] = await anchor.web3.PublicKey.findProgramAddress(
       [Buffer.from('ballot_box')],
       program.programId
@@ -61,6 +63,8 @@ describe('votesol', () => {
 
     const originalBallotBox = await program.account.ballotBox.fetch(ballotPDA);
     console.log('Original left votes: ', originalBallotBox.leftVotes);
+    console.log('Original balance: ', originalBallotBox.balance);
+
     /* 
     Rust enums are very different from C++ or TS enums. rust enums are a way to represent a set of structs together.
     Rust enums are tagged unions(dunno what this means), TS enums are not.
@@ -76,12 +80,15 @@ describe('votesol', () => {
       .vote(VoteOption) // enum as the parameter
       .accounts({
         ballotBox: ballotPDA,
+        authority: wallet.publicKey,
+        systemProgram: systemProgram.programId,
       })
       .signers([])
       .rpc();
 
     const updatedBallotBox = await program.account.ballotBox.fetch(ballotPDA);
     console.log('Updated left votes: ', updatedBallotBox.leftVotes);
+    console.log('Updated balance: ', updatedBallotBox.balance);
 
     console.log('Vote transaction: ', tx);
   });

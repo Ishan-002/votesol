@@ -1,9 +1,13 @@
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::program::invoke;
+use anchor_lang::solana_program::system_instruction::transfer;
 
 declare_id!("HWFFMkkxfV2xSpxytZQaEDP1QCYLKG71Vxt7bZ6zgFhK");
 
 #[program]
 pub mod votesol {
+    use anchor_lang::__private::base64::display::Base64Display;
+
     use super::*;
 
     pub fn create_ballot(ctx: Context<CreateBallot>) -> Result<()> {
@@ -15,6 +19,27 @@ pub mod votesol {
     pub fn vote(ctx: Context<Vote>, vote_option: VoteOption) -> Result<()> {
         let ballot_box = &mut ctx.accounts.ballot_box;
         // let ballot_box = &mut ctx.accounts.ballot_box;
+
+        // charge fee for voting
+        // this is a system instruction and hence this is a CPI
+        let voting_fee_transfer = transfer(
+            &ctx.accounts.authority.key(), // From account
+            &ballot_box.key(),             // To account
+            1000000,
+        );
+        ballot_box.balance = ballot_box.balance.checked_add(1).unwrap();
+        
+        // the instruction is then invoked using the invoke() function
+        invoke(
+            &voting_fee_transfer,
+            &[
+                ctx.accounts.authority.to_account_info(),
+                ballot_box.to_account_info(),
+                ctx.accounts.system_program.to_account_info(),
+            ],
+        )?;
+
+        // now vote
         match vote_option {
             // ToDo: Error handling using the below line
             // ballot_box.left_votes.checked_add(1).ok_or(Errors::LeftVotesOverflow);
@@ -47,7 +72,8 @@ pub struct CreateBallot<'info> {
 pub struct Vote<'info> {
     #[account(mut, seeds=[b"ballot_box".as_ref()], bump)]
     pub ballot_box: Account<'info, BallotBox>,
-    // pub authority: Signer<'info>,
+    pub authority: Signer<'info>,
+    pub system_program: Program<'info, System>,
 }
 
 #[account]
@@ -55,6 +81,7 @@ pub struct Vote<'info> {
 pub struct BallotBox {
     pub left_votes: u64,
     pub right_votes: u64,
+    pub balance: u64,
     // pub bump: u8,
 }
 
