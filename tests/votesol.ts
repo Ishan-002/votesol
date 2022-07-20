@@ -1,6 +1,7 @@
 import * as anchor from '@project-serum/anchor';
 import { Program } from '@project-serum/anchor';
 import { Votesol } from '../target/types/votesol';
+import { PublicKey } from '@solana/web3.js';
 
 // For JS/TS: use camelCase
 // For Rust: use snake_case => All the rust structures/keyworks/variable-names have been parsed and changed to CamelCase which are used in JS/TS
@@ -53,6 +54,40 @@ describe('votesol', () => {
       voteOption: { leftVote: {} }
     }
     */
+  });
+
+  it('Created a whitelist', async () => {
+    const whitelistingKey = new PublicKey('GAChMFE4jNfB7XXfx6dEoPGWV7UxNRRdxois4FcmBVxe'); // Put any public key that you want to get whitelisted here.
+    const [whitelistPDA, _] = await anchor.web3.PublicKey.findProgramAddress(
+      [wallet.publicKey.toBuffer(), whitelistingKey.toBuffer()],
+      program.programId
+    );
+    console.log('Whitelist pda public key: ', whitelistingKey);
+
+    const whitelistingTransaction = await program.methods
+      .createWhitelist(whitelistingKey)
+      .accounts({
+        authority: wallet.publicKey,
+        whitelist: whitelistPDA,
+        systemProgram: systemProgram.programId,
+      })
+      .rpc();
+    console.log(
+      'Whitelist creationg transaction signature: ',
+      whitelistingTransaction
+    );
+    console.log('Whitelist created');
+  });
+
+  it('Checks if a key is whitelisted', async () => {
+    const whitelistingKey = new PublicKey('GAChMFE4jNfB7XXfx6dEoPGWV7UxNRRdxois4FcmBVxe'); // Put any public key that you want to check the whitelisted for.
+    const [whitelistPDA, _] = await anchor.web3.PublicKey.findProgramAddress(
+      [wallet.publicKey.toBuffer(), whitelistingKey.toBuffer()],
+      program.programId
+    );
+    const whitelist = await program.account.whitelist.fetch(whitelistPDA);
+
+    console.log('Whitelist: ', whitelist);
   });
 
   it('Voted for left', async () => {

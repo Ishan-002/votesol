@@ -6,8 +6,6 @@ declare_id!("HWFFMkkxfV2xSpxytZQaEDP1QCYLKG71Vxt7bZ6zgFhK");
 
 #[program]
 pub mod votesol {
-    use anchor_lang::__private::base64::display::Base64Display;
-
     use super::*;
 
     pub fn create_ballot(ctx: Context<CreateBallot>) -> Result<()> {
@@ -28,7 +26,7 @@ pub mod votesol {
             1000000,
         );
         ballot_box.balance = ballot_box.balance.checked_add(1).unwrap();
-        
+
         // the instruction is then invoked using the invoke() function
         invoke(
             &voting_fee_transfer,
@@ -52,6 +50,11 @@ pub mod votesol {
         }
         Ok(())
     }
+    pub fn create_whitelist(ctx: Context<CreateWhitelist>, whitelisting_key: Pubkey) -> Result<()> {
+        // save the public key of the account to be whitelisted in the new whitelisting account
+        ctx.accounts.whitelist.key = whitelisting_key;
+        Ok(())
+    }
 }
 
 #[derive(Accounts)]
@@ -66,6 +69,18 @@ pub struct CreateBallot<'info> {
     #[account(init, space=BallotBox::LEN, seeds=[b"ballot_box".as_ref()], bump, payer=authority)]
     ballot_box: Account<'info, BallotBox>,
     system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(whitelisting_key: Pubkey)]
+// using the instruction argument to use the parameter passed to the create_whitelist function.
+// By this, any argument used in the function can be utilised here, in rust validator too.
+pub struct CreateWhitelist<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    #[account(init, space=Whitelist::LEN, seeds=[authority.key().as_ref(), whitelisting_key.as_ref()], bump, payer=authority)]
+    pub whitelist: Account<'info, Whitelist>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
@@ -85,14 +100,25 @@ pub struct BallotBox {
     // pub bump: u8,
 }
 
+// whitelisiting account: stores the public key of the account which it whitelists
+#[account]
+pub struct Whitelist {
+    pub key: Pubkey,
+}
+
 const UNSIGNED64_LENGTH: usize = 8;
 // An account discriminator is few bytes that Anchor puts at the front of an account, like a header.
 // It lets anchor know what type of account it should deserialize the data as.
 const DISCRIMINATOR_LENGTH: usize = 8;
+const PUBKEY_LENGTH: usize = 32;
 
 impl BallotBox {
     const LEN: usize = DISCRIMINATOR_LENGTH + UNSIGNED64_LENGTH + UNSIGNED64_LENGTH;
     // I cannot store bump in the implementation here, since it would be decided at runtime when the owner of the create_ballot program calls it.
+}
+
+impl Whitelist {
+    const LEN: usize = DISCRIMINATOR_LENGTH + PUBKEY_LENGTH;
 }
 
 // Anchor serialise, deserialise, and other functions are required in order to use this enum in the Anchor runtime function vote().
