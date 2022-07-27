@@ -133,3 +133,5 @@ pub enum Errors {
     LeftVotesOverflow,
     RightVotesOverflow,
 }
+
+// Todo: Ensure a check that is this person who is creating a whitelisting account, is actually a signer for the transaction.

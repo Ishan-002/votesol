@@ -18,25 +18,25 @@ describe('votesol', () => {
   // Note: Initialisation is different from init. Initialisation gives inital values,
   // while init was already done when instruction was writting in #[account(init, ...)]
   // Hence, as we can see, createBallot() is used in the test.
-  it('Program initialised', async () => {
-    // findProgramAddress() "finds" a PDA public key which does not lie on the elliptic curve using a suitable bump.
-    // So, even if, in general a pda in not created, it can find a public key for those seeds (Since, during init too, we are "finding" the pda, not creating it)
-    const [ballotPDA, _] = await anchor.web3.PublicKey.findProgramAddress(
-      [Buffer.from('ballot_box')],
-      program.programId
-    );
+  // it('Program initialised', async () => {
+  //   // findProgramAddress() "finds" a PDA public key which does not lie on the elliptic curve using a suitable bump.
+  //   // So, even if, in general a pda in not created, it can find a public key for those seeds (Since, during init too, we are "finding" the pda, not creating it)
+  //   const [ballotPDA, _] = await anchor.web3.PublicKey.findProgramAddress(
+  //     [Buffer.from('ballot_box')],
+  //     program.programId
+  //   );
 
-    const tx = await program.methods
-      .createBallot()
-      .accounts({
-        authority: wallet.publicKey,
-        ballotBox: ballotPDA,
-        systemProgram: systemProgram.programId,
-      })
-      .rpc();
+  //   const tx = await program.methods
+  //     .createBallot()
+  //     .accounts({
+  //       authority: wallet.publicKey,
+  //       ballotBox: ballotPDA,
+  //       systemProgram: systemProgram.programId,
+  //     })
+  //     .rpc();
 
-    console.log('Initialisation transaction: ', tx);
-  });
+  //   console.log('Initialisation transaction: ', tx);
+  // });
 
   it('Fetched the ballot box', async () => {
     const [ballotPDA, _] = await anchor.web3.PublicKey.findProgramAddress(
@@ -56,31 +56,35 @@ describe('votesol', () => {
     */
   });
 
-  it('Created a whitelist', async () => {
-    const whitelistingKey = new PublicKey('GAChMFE4jNfB7XXfx6dEoPGWV7UxNRRdxois4FcmBVxe'); // Put any public key that you want to get whitelisted here.
-    const [whitelistPDA, _] = await anchor.web3.PublicKey.findProgramAddress(
-      [wallet.publicKey.toBuffer(), whitelistingKey.toBuffer()],
-      program.programId
-    );
-    console.log('Whitelist pda public key: ', whitelistingKey);
+  // it('Created a whitelist', async () => {
+  //   const whitelistingKey = new PublicKey(
+  //     'GAChMFE4jNfB7XXfx6dEoPGWV7UxNRRdxois4FcmBVxe'
+  //   ); // Put any public key that you want to get whitelisted here.
+  //   const [whitelistPDA, _] = await anchor.web3.PublicKey.findProgramAddress(
+  //     [wallet.publicKey.toBuffer(), whitelistingKey.toBuffer()],
+  //     program.programId
+  //   );
+  //   console.log('Whitelist pda public key: ', whitelistingKey);
 
-    const whitelistingTransaction = await program.methods
-      .createWhitelist(whitelistingKey)
-      .accounts({
-        authority: wallet.publicKey,
-        whitelist: whitelistPDA,
-        systemProgram: systemProgram.programId,
-      })
-      .rpc();
-    console.log(
-      'Whitelist creationg transaction signature: ',
-      whitelistingTransaction
-    );
-    console.log('Whitelist created');
-  });
+  //   const whitelistingTransaction = await program.methods
+  //     .createWhitelist(whitelistingKey)
+  //     .accounts({
+  //       authority: wallet.publicKey,
+  //       whitelist: whitelistPDA,
+  //       systemProgram: systemProgram.programId,
+  //     })
+  //     .rpc();
+  //   console.log(
+  //     'Whitelist creationg transaction signature: ',
+  //     whitelistingTransaction
+  //   );
+  //   console.log('Whitelist created');
+  // });
 
   it('Checks if a key is whitelisted', async () => {
-    const whitelistingKey = new PublicKey('GAChMFE4jNfB7XXfx6dEoPGWV7UxNRRdxois4FcmBVxe'); // Put any public key that you want to check the whitelisted for.
+    const whitelistingKey = new PublicKey(
+      'GAChMFE4jNfB7XXfx6dEoPGWV7UxNRRdxois4FcmBVxe'
+    ); // Put any public key that you want to check the whitelisted for.
     const [whitelistPDA, _] = await anchor.web3.PublicKey.findProgramAddress(
       [wallet.publicKey.toBuffer(), whitelistingKey.toBuffer()],
       program.programId
@@ -108,6 +112,16 @@ describe('votesol', () => {
     Refer: https://github.com/coral-xyz/anchor/blob/master/tests/lockup/tests/lockup.js#L475
            https://github.com/coral-xyz/anchor/blob/master/tests/lockup/programs/registry/src/lib.rs#L1167
     */
+
+    const whitelistingKey = new PublicKey(
+      'GAChMFE4jNfB7XXfx6dEoPGWV7UxNRRdxois4FcmBVxe'
+    ); // Put any public key that you want to check the whitelisted for.
+    const [whitelistPDA, bump] = await anchor.web3.PublicKey.findProgramAddress(
+      [wallet.publicKey.toBuffer(), whitelistingKey.toBuffer()],
+      program.programId
+    );
+    const whitelist = await program.account.whitelist.fetch(whitelistPDA);
+    console.log('Whitelist: ', whitelist);
     const VoteOption = {
       leftVote: 0, // variantName : {}
     };
