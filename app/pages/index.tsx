@@ -80,7 +80,54 @@ const Home: NextPage = () => {
 
     console.log('Whitelist: ', whitelist);
   };
+  const voteRight = async () => {
+    const systemProgram = anchor.web3.SystemProgram;
+    const program = programState.program;
+    const [ballotPDA, _] = await anchor.web3.PublicKey.findProgramAddress(
+      [Buffer.from('ballot_box')],
+      program.programId
+    );
 
+    const originalBallotBox = await program.account.ballotBox.fetch(ballotPDA);
+    console.log('Original right votes: ', originalBallotBox.rightVotes);
+    console.log('Original balance: ', originalBallotBox.balance);
+
+    const VoteOption = {
+      rightVote: 0, // variantName : {}
+    };
+
+    await checkWhitelisted()
+      .then(async () => {
+        console.log("Voting can be done, you're whitelisted");
+        const tx = await program.methods
+          .vote(VoteOption) // enum as the parameter
+          .accounts({
+            ballotBox: ballotPDA,
+            authority: wallet.publicKey,
+            systemProgram: systemProgram.programId,
+          })
+          .signers([])
+          .rpc();
+
+        const updatedBallotBox = await program.account.ballotBox.fetch(
+          ballotPDA
+        );
+
+        console.log('Updated right votes: ', updatedBallotBox.rightVotes);
+        console.log('Updated balance: ', updatedBallotBox.balance);
+
+        console.log('Vote transaction: ', tx);
+
+        setProgramState({
+          ...programState,
+          rightVotes: updatedBallotBox.rightVotes.toString(),
+        });
+      })
+      .catch((err) => {
+        console.log("You're not whitelisted, you can't vote");
+        console.log(err);
+      });
+  };
   const voteLeft = async () => {
     const systemProgram = anchor.web3.SystemProgram;
     const program = programState.program;
@@ -168,10 +215,46 @@ const Home: NextPage = () => {
           <div className="flex justify-center px-4 py-16 bg-base-200">
             <WalletMultiButton />
             <WalletDisconnectButton />
+            <br />
             {programState.program && (
               <div>
-                {' '}
-                <div>Votes: {programState.leftVotes}</div>
+                <div className="card w-96 bg-base-100 shadow-xl">
+                  <div className="card-body">
+                    <h2 className="card-title">Left Votes</h2>
+                    <p>{programState.leftVotes}</p>
+                    <div className="card-actions justify-end">
+                      <button
+                        className="btn btn-primary"
+                        onClick={async () => {
+                          // console.log(programState);
+                          await voteLeft();
+                          await setupProgram();
+                        }}
+                      >
+                        Vote for left
+                      </button>
+                    </div>
+                  </div>
+                </div>{' '}
+                <div className="card w-96 bg-base-100 shadow-xl">
+                  <div className="card-body">
+                    <h2 className="card-title">Right Votes</h2>
+                    <p>{programState.rightVotes}</p>
+                    <div className="card-actions justify-end">
+                      <button
+                        className="btn btn-primary"
+                        onClick={async () => {
+                          // console.log(programState);
+                          await voteRight();
+                          await setupProgram();
+                        }}
+                      >
+                        Vote for right
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                {/* <div>Votes: {programState.leftVotes}</div>
                 <button
                   onClick={async () => {
                     // console.log(programState);
@@ -180,7 +263,7 @@ const Home: NextPage = () => {
                   }}
                 >
                   Vote for left
-                </button>{' '}
+                </button>{' '} */}
               </div>
             )}
           </div>
