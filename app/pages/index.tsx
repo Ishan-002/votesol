@@ -13,14 +13,20 @@ import {
 import React, { useState, useEffect } from 'react';
 
 import idl_type from '../../target/idl/votesol.json';
-import { ConfirmOptions } from '@solana/web3.js';
+import { ConfirmOptions, PublicKey } from '@solana/web3.js';
 
 const Home: NextPage = () => {
   const connection = useConnection();
   const wallet: AnchorWallet | any = useAnchorWallet();
   // the options for the provider constructor
   const opts = { preflighCommitment: 'processed' as ConfirmOptions };
-  const [programState, setProgramState] = useState({});
+  const [programState, setProgramState] = useState({} as any);
+  const defaultProgramState = {
+    program: {},
+    defaultCounter: undefined,
+    leftVotes: 0,
+    rightVotes: 0,
+  };
 
   // it takes a lot of effort on the client side to setup the program connection and wallet, unlike anchor where much of the thing are done already
   const setupProgram = async () => {
@@ -39,9 +45,7 @@ const Home: NextPage = () => {
       'HWFFMkkxfV2xSpxytZQaEDP1QCYLKG71Vxt7bZ6zgFhK',
       provider
     );
-
-    // Finally setting the program state to the loaded program variable
-    setProgramState(program);
+    console.log('The program is: ', program);
 
     // Fetching the ballot box; exact same code as tests
     const [ballotPDA, _] = await anchor.web3.PublicKey.findProgramAddress(
@@ -52,7 +56,68 @@ const Home: NextPage = () => {
 
     const ballotBox = await program.account.ballotBox.fetch(ballotPDA);
     console.log('Ballot box: ', ballotBox);
+
+    // Finally setting the program state to the loaded program variable
+    setProgramState({
+      program: program,
+      ballotBox: ballotBox,
+      // @ts-ignore
+      leftVotes: ballotBox.leftVotes.toString(),
+      // @ts-ignore
+      rightVotes: ballotBox.rightVotes.toString(),
+    });
   };
+
+  const voteLeft = async () => {
+    const systemProgram = anchor.web3.SystemProgram;
+    const program = programState.program;
+    const [ballotPDA, _] = await anchor.web3.PublicKey.findProgramAddress(
+      [Buffer.from('ballot_box')],
+      program.programId
+    );
+
+    const originalBallotBox = await program.account.ballotBox.fetch(
+      ballotPDA
+    );
+    console.log('Original left votes: ', originalBallotBox.leftVotes);
+    console.log('Original balance: ', originalBallotBox.balance);
+
+    // const whitelistingKey = new PublicKey(
+    //   'GAChMFE4jNfB7XXfx6dEoPGWV7UxNRRdxois4FcmBVxe'
+    // ); // Put any public key that you want to check the whitelisted for.
+    // const [whitelistPDA, bump] = await anchor.web3.PublicKey.findProgramAddress(
+    //   [wallet.publicKey.toBuffer(), whitelistingKey.toBuffer()],
+    //   program.programId
+    // );
+    // const whitelist = await program.account.whitelist.fetch(
+    //   whitelistPDA
+    // );
+    // console.log('Whitelist: ', whitelist);
+    const VoteOption = {
+      leftVote: 0, // variantName : {}
+    };
+    const tx = await program.methods
+      .vote(VoteOption) // enum as the parameter
+      .accounts({
+        ballotBox: ballotPDA,
+        authority: wallet.publicKey,
+        systemProgram: systemProgram.programId,
+      })
+      .signers([])
+      .rpc();
+
+    const updatedBallotBox = await program.account.ballotBox.fetch(ballotPDA);
+
+    // setProgramState({ ...programState, leftVotes: updatedBallotBox.leftVotes });
+    console.log('Updated left votes: ', updatedBallotBox.leftVotes);
+    console.log('Updated balance: ', updatedBallotBox.balance);
+
+    console.log('Vote transaction: ', tx);
+
+    setProgramState({ ...programState, leftVotes: updatedBallotBox.leftVotes.toString() });
+  };
+
+  // this hook sets up the program
   useEffect(() => {
     (async () => {
       if (
@@ -64,8 +129,20 @@ const Home: NextPage = () => {
         return;
       }
       await setupProgram();
+      console.log('Program setup');
     })();
   }, [wallet]);
+
+  // this hook logs when program setup gets done
+  useEffect(() => {
+    // @ts-ignore
+    if (!programState.program) {
+      // console.log('programState.program: ', programState);
+      return;
+    }
+    console.log('Program setup has been done.');
+  }, [programState]);
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center py-2">
       <Head>
@@ -77,6 +154,21 @@ const Home: NextPage = () => {
           <div className="flex justify-center px-4 py-16 bg-base-200">
             <WalletMultiButton />
             <WalletDisconnectButton />
+            {programState.program && (
+              <div>
+                {' '}
+                <div>Votes: {programState.leftVotes}</div>
+                <button
+                  onClick={async () => {
+                    // console.log(programState);
+                    await voteLeft();
+                    await setupProgram();
+                  }}
+                >
+                  Vote for left
+                </button>{' '}
+              </div>
+            )}
           </div>
         </div>
       </main>
