@@ -78,7 +78,7 @@ pub struct CreateBallot<'info> {
 pub struct CreateWhitelist<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
-    #[account(init, space=Whitelist::LEN, seeds=[authority.key().as_ref(), whitelisting_key.as_ref()], bump, payer=authority)]
+    #[account(init, space=Whitelist::LEN, seeds=[b"whitelisting".as_ref(), whitelisting_key.as_ref()], bump, payer=authority)]
     pub whitelist: Account<'info, Whitelist>,
     pub system_program: Program<'info, System>,
 }

@@ -56,37 +56,39 @@ describe('votesol', () => {
     */
   });
 
-  // it('Created a whitelist', async () => {
-  //   const whitelistingKey = new PublicKey(
-  //     'GAChMFE4jNfB7XXfx6dEoPGWV7UxNRRdxois4FcmBVxe'
-  //   ); // Put any public key that you want to get whitelisted here.
-  //   const [whitelistPDA, _] = await anchor.web3.PublicKey.findProgramAddress(
-  //     [wallet.publicKey.toBuffer(), whitelistingKey.toBuffer()],
-  //     program.programId
-  //   );
-  //   console.log('Whitelist pda public key: ', whitelistingKey);
+  it('Created a whitelist', async () => {
+    const whitelistingKey = new PublicKey(
+      'GAChMFE4jNfB7XXfx6dEoPGWV7UxNRRdxois4FcmBVxe'
+    ); // Put any public key that you want to get whitelisted here.
+    const [whitelistPDA, _] = await anchor.web3.PublicKey.findProgramAddress(
+      [Buffer.from('whitelisting'), wallet.publicKey.toBuffer()],
+      program.programId
+    );
+    // console.log('Whitelist pda public key: ', whitelistingKey);
+    console.log('Whitelist pda public key: ', whitelistPDA);
 
-  //   const whitelistingTransaction = await program.methods
-  //     .createWhitelist(whitelistingKey)
-  //     .accounts({
-  //       authority: wallet.publicKey,
-  //       whitelist: whitelistPDA,
-  //       systemProgram: systemProgram.programId,
-  //     })
-  //     .rpc();
-  //   console.log(
-  //     'Whitelist creationg transaction signature: ',
-  //     whitelistingTransaction
-  //   );
-  //   console.log('Whitelist created');
-  // });
+    const whitelistingTransaction = await program.methods
+      .createWhitelist(wallet.publicKey)
+      .accounts({
+        authority: wallet.publicKey,
+        whitelist: whitelistPDA,
+        systemProgram: systemProgram.programId,
+      })
+      .rpc();
+    console.log(
+      'Whitelist creationg transaction signature: ',
+      whitelistingTransaction
+    );
+    console.log('Whitelist created');
+  });
 
   it('Checks if a key is whitelisted', async () => {
     const whitelistingKey = new PublicKey(
       'GAChMFE4jNfB7XXfx6dEoPGWV7UxNRRdxois4FcmBVxe'
     ); // Put any public key that you want to check the whitelisted for.
+    console.log("wallet public key: ", wallet.publicKey);
     const [whitelistPDA, _] = await anchor.web3.PublicKey.findProgramAddress(
-      [wallet.publicKey.toBuffer(), whitelistingKey.toBuffer()],
+      [Buffer.from('whitelisting'), wallet.publicKey.toBuffer()],
       program.programId
     );
     const whitelist = await program.account.whitelist.fetch(whitelistPDA);
@@ -117,7 +119,7 @@ describe('votesol', () => {
       'GAChMFE4jNfB7XXfx6dEoPGWV7UxNRRdxois4FcmBVxe'
     ); // Put any public key that you want to check the whitelisted for.
     const [whitelistPDA, bump] = await anchor.web3.PublicKey.findProgramAddress(
-      [wallet.publicKey.toBuffer(), whitelistingKey.toBuffer()],
+      [Buffer.from('whitelisting'), wallet.publicKey.toBuffer()],
       program.programId
     );
     const whitelist = await program.account.whitelist.fetch(whitelistPDA);

@@ -67,6 +67,19 @@ const Home: NextPage = () => {
       rightVotes: ballotBox.rightVotes.toString(),
     });
   };
+  const checkWhitelisted = async () => {
+    const program = programState.program;
+    const whitelistingKey = new PublicKey(
+      'GAChMFE4jNfB7XXfx6dEoPGWV7UxNRRdxois4FcmBVxe'
+    ); // Put any public key that you want to check the whitelisted for.
+    const [whitelistPDA, _] = await anchor.web3.PublicKey.findProgramAddress(
+      [Buffer.from('whitelisting'), wallet.publicKey.toBuffer()],
+      program.programId
+    );
+    const whitelist = await program.account.whitelist.fetch(whitelistPDA);
+
+    console.log('Whitelist: ', whitelist);
+  };
 
   const voteLeft = async () => {
     const systemProgram = anchor.web3.SystemProgram;
@@ -76,45 +89,46 @@ const Home: NextPage = () => {
       program.programId
     );
 
-    const originalBallotBox = await program.account.ballotBox.fetch(
-      ballotPDA
-    );
+    const originalBallotBox = await program.account.ballotBox.fetch(ballotPDA);
     console.log('Original left votes: ', originalBallotBox.leftVotes);
     console.log('Original balance: ', originalBallotBox.balance);
 
-    // const whitelistingKey = new PublicKey(
-    //   'GAChMFE4jNfB7XXfx6dEoPGWV7UxNRRdxois4FcmBVxe'
-    // ); // Put any public key that you want to check the whitelisted for.
-    // const [whitelistPDA, bump] = await anchor.web3.PublicKey.findProgramAddress(
-    //   [wallet.publicKey.toBuffer(), whitelistingKey.toBuffer()],
-    //   program.programId
-    // );
-    // const whitelist = await program.account.whitelist.fetch(
-    //   whitelistPDA
-    // );
-    // console.log('Whitelist: ', whitelist);
     const VoteOption = {
       leftVote: 0, // variantName : {}
     };
-    const tx = await program.methods
-      .vote(VoteOption) // enum as the parameter
-      .accounts({
-        ballotBox: ballotPDA,
-        authority: wallet.publicKey,
-        systemProgram: systemProgram.programId,
+
+    await checkWhitelisted()
+      .then(async () => {
+        console.log("Voting can be done, you're whitelisted");
+        const tx = await program.methods
+          .vote(VoteOption) // enum as the parameter
+          .accounts({
+            ballotBox: ballotPDA,
+            authority: wallet.publicKey,
+            systemProgram: systemProgram.programId,
+          })
+          .signers([])
+          .rpc();
+
+        const updatedBallotBox = await program.account.ballotBox.fetch(
+          ballotPDA
+        );
+
+        // setProgramState({ ...programState, leftVotes: updatedBallotBox.leftVotes });
+        console.log('Updated left votes: ', updatedBallotBox.leftVotes);
+        console.log('Updated balance: ', updatedBallotBox.balance);
+
+        console.log('Vote transaction: ', tx);
+
+        setProgramState({
+          ...programState,
+          leftVotes: updatedBallotBox.leftVotes.toString(),
+        });
       })
-      .signers([])
-      .rpc();
-
-    const updatedBallotBox = await program.account.ballotBox.fetch(ballotPDA);
-
-    // setProgramState({ ...programState, leftVotes: updatedBallotBox.leftVotes });
-    console.log('Updated left votes: ', updatedBallotBox.leftVotes);
-    console.log('Updated balance: ', updatedBallotBox.balance);
-
-    console.log('Vote transaction: ', tx);
-
-    setProgramState({ ...programState, leftVotes: updatedBallotBox.leftVotes.toString() });
+      .catch((err) => {
+        console.log("You're not whitelisted, you can't vote");
+        console.log(err);
+      });
   };
 
   // this hook sets up the program
